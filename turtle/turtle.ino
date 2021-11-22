@@ -1,11 +1,10 @@
 //IMPORTS - ensure libraries are installed
 #include <PID_v1.h>
 
-//GLOBAL DATA - variables that can be used in any method
+//GLOBAL DATA 
 
-//twist message data
-double linearX = .2;
-double angularZ = -2;
+//twist message variables;
+double linearX = .1, angularZ = -.5;
 
 //motors
 const int RIN1 = 5;  // R ACW
@@ -41,14 +40,6 @@ PID rightMotorPID(&rightMotorSetPoint, &rightMotorInput, &rightMotorOutput, Kp, 
 
 //SETUP
 void setup() {
-  if (angularZ > 0) {
-    leftMotorAngularSpeedEncoderCount = angularZ*(ticksPerWheelRotation*(circleCircumference/wheelCircumference)/(2*Pi))/10;
-  } else if (angularZ < 0) {
-    rightMotorAngularSpeedEncoderCount = -angularZ*(ticksPerWheelRotation*(circleCircumference/wheelCircumference)/(2*Pi))/10; 
-  } else {
-    leftMotorAngularSpeedEncoderCount = 0;
-    rightMotorAngularSpeedEncoderCount = 0;
-  }
   //print
   Serial.begin(9600);
   //pins
@@ -72,6 +63,34 @@ void setup() {
 
 //LOOP
 void loop() {
+  moveTurtle(linearX, angularZ);
+}
+
+// Move Turtle
+void moveTurtle(double linear_x, double angular_z) {
+  setVelocityLimits(.5, 5);
+  setAngularDirection();
+  setLinearDirection(); 
+}
+
+//Speed Limits & Direction
+void setVelocityLimits(double linear_limit, double angular_limit){
+   if (linearX > linear_limit) {linearX = linear_limit;}
+  if (linearX < -linear_limit) {linearX = -linear_limit;}
+  if (angularZ > angular_limit) {angularZ = angular_limit;}
+  if (angularZ < -angular_limit) {angularZ = -angular_limit;}
+}
+void setAngularDirection() {
+  if (angularZ > 0) {
+    leftMotorAngularSpeedEncoderCount = angularZ*(ticksPerWheelRotation*(circleCircumference/wheelCircumference)/(2*Pi))/10;
+  } else if (angularZ < 0) {
+    rightMotorAngularSpeedEncoderCount = -angularZ*(ticksPerWheelRotation*(circleCircumference/wheelCircumference)/(2*Pi))/10; 
+  } else {
+    leftMotorAngularSpeedEncoderCount = 0;
+    rightMotorAngularSpeedEncoderCount = 0;
+  }
+}
+void setLinearDirection(){
   if (linearX > 0) {
     linearSpeedEncoderCount = linearX*(ticksPerWheelRotation/wheelCircumference)/10; // ticks/100ms
     moveForward();
@@ -81,8 +100,57 @@ void loop() {
   } else {
     stopTurtle();
   }
-  getEncoderSpeed();
 }
+
+
+//MOTORS
+
+//Both Motors
+void moveForward(){
+  leftMotor('L');
+  rightMotor('R');
+}
+void moveBackward(){
+  leftMotor('R');
+  rightMotor('L');
+}
+void stopTurtle(){
+  leftMotor('stop');
+  rightMotor('stop');
+}
+
+//Left Motor
+ void leftMotor(char d){
+//  leftMotorInput = leftMotorSetPoint - getEncoderSpeed();
+//  leftMotorPID.Compute();
+  int ms = map(linearSpeedEncoderCount + leftMotorAngularSpeedEncoderCount/2 - rightMotorAngularSpeedEncoderCount/2, 0, maxEnC, 0, 255);
+  if (d=='L'){
+    analogWrite(LIN1, 0);
+    analogWrite(LIN2, ms);
+  } else if (d=='R') {
+    analogWrite(LIN1, ms);
+    analogWrite(LIN2, 0);
+  } else {
+    analogWrite(LIN1, 0);
+    analogWrite(LIN2, 0);
+  }
+}
+
+//Right Motor
+void rightMotor(char d){
+  int ms = map(linearSpeedEncoderCount - leftMotorAngularSpeedEncoderCount/2 + rightMotorAngularSpeedEncoderCount/2, 0, maxEnC, 0, 255);
+  if (d=='R'){
+    analogWrite(RIN1, 0);
+    analogWrite(RIN2, ms);
+  } else if (d=='L') {
+    analogWrite(RIN1, ms);
+    analogWrite(RIN2, 0);
+  } else {
+    analogWrite(RIN1, 0);
+    analogWrite(RIN2, 0);
+  }
+}
+
 
 //INTERRUPTS
 // read pulse and update count
@@ -112,54 +180,4 @@ int getEncoderSpeed() {
   } else {
     return 0;
   } 
-}
-
-//RUN LEFT MOTOR
- void leftMotor(char d){
-//  leftMotorInput = leftMotorSetPoint - getEncoderSpeed();
-//  leftMotorPID.Compute();
-  int ms = map(linearSpeedEncoderCount + leftMotorAngularSpeedEncoderCount/2 - rightMotorAngularSpeedEncoderCount/2, 0, maxEnC, 0, 255);
-  if (d=='L'){
-    analogWrite(LIN1, 0);
-    analogWrite(LIN2, ms);
-  } else if (d=='R') {
-    analogWrite(LIN1, ms);
-    analogWrite(LIN2, 0);
-  } else {
-    analogWrite(LIN1, 0);
-    analogWrite(LIN2, 0);
-  }
- 
-}
-
-//RUN RIGHT MOTOR
-void rightMotor(char d){
-  int ms = map(linearSpeedEncoderCount - leftMotorAngularSpeedEncoderCount/2 + rightMotorAngularSpeedEncoderCount/2, 0, maxEnC, 0, 255);
-  if (d=='R'){
-    analogWrite(RIN1, 0);
-    analogWrite(RIN2, ms);
-  } else if (d=='L') {
-    analogWrite(RIN1, ms);
-    analogWrite(RIN2, 0);
-  } else {
-    analogWrite(RIN1, 0);
-    analogWrite(RIN2, 0);
-  }
-
-}
-
-//RUN BOTH MOTORS
-void moveForward(){
-  leftMotor('L');
-  rightMotor('R');
-}
-
-void moveBackward(){
-  leftMotor('R');
-  rightMotor('L');
-}
-
-void stopTurtle(){
-  leftMotor('stop');
-  rightMotor('stop');
 }
