@@ -103,19 +103,19 @@ void setVelocityLimits(double linear_limit, double angular_limit){
 void setAngularDirection(double lx, double az) {
   if (az > 0) {
     if (lx >= 0){
-      ECAngL = az*(ticksPerWR*(circleCirc/wheelCirc)/(2*Pi))/10; // rad/100ms
+      ECAngL = az*(ticksPerWR*(circleCirc/wheelCirc)/(2*Pi))/10; 
       ECAngR = 0;
     } else {
       ECAngL = 0;
-      ECAngR = az*(ticksPerWR*(circleCirc/wheelCirc)/(2*Pi))/10; // rad/100ms;
+      ECAngR = az*(ticksPerWR*(circleCirc/wheelCirc)/(2*Pi))/10; 
     }
   } else if (az < 0) {
     if (lx >= 0) {
-      ECAngR = -az*(ticksPerWR*(circleCirc/wheelCirc)/(2*Pi))/10; // rad/100ms
+      ECAngR = -az*(ticksPerWR*(circleCirc/wheelCirc)/(2*Pi))/10; 
       ECAngL = 0;
     } else {
       ECAngR = 0;
-      ECAngL = -az*(ticksPerWR*(circleCirc/wheelCirc)/(2*Pi))/10; // rad/100ms
+      ECAngL = -az*(ticksPerWR*(circleCirc/wheelCirc)/(2*Pi))/10; 
     }
   } else {
     ECAngL = 0;
