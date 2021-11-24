@@ -1,10 +1,11 @@
 //IMPORTS - ensure libraries are installed
 #include <PID_v1.h>
+#include <Wire.h>
 
 //GLOBAL DATA 
 
 //twist message variables;
-double linearX = 4, angularZ = .8;
+double linearX = .4, angularZ = 2;
 
 //speed limits
 double x_val_limit = .5, z_val_limit = 5;
@@ -61,7 +62,6 @@ void setup() {
   rightMotorPID.SetMode(AUTOMATIC);
   leftMotorPID.SetMode(AUTOMATIC);
   
-  //encoder counts
   //interrups
   attachInterrupt(0, interruptR, CHANGE);
   attachInterrupt(1, interruptL, CHANGE); 
@@ -70,10 +70,10 @@ void setup() {
 //LOOP
 void loop() {
   //moveTurtle(linearX, angularZ);                   
-  wobbleTurtle(linearX, angularZ, wobbleInterval);
+  wobbleTurtle(linearX, angularZ, 700); //.4, 1.8, 800
 }
 
-//Wobble turtle left and right args| wi: positive ms 
+//Wobble turtle left and right - args| x:-.5 to .5; z: -5 to 5; wi: positive ms 
 void wobbleTurtle(double linear_x, double angular_z, int wobble_interval) {
   linearX = linear_x;
   angularZ = angular_z;
@@ -81,12 +81,11 @@ void wobbleTurtle(double linear_x, double angular_z, int wobble_interval) {
   if (currentTime >= nextWobbleTime){
     angularZ *= -1;
     nextWobbleTime = currentTime + wobble_interval;
-    Serial.println(angularZ);
   } 
   moveTurtle(linearX, angularZ);
 }
 
-// Move Turtle args| x: -.5 to .5; y: -5 to 5
+// Move Turtle - args| x:-.5 to .5; z: -5 to 5
 void moveTurtle(double linear_x, double angular_z) {
   setVelocityLimits(x_val_limit, z_val_limit);
   setAngularDirection(linear_x, angular_z);
@@ -214,4 +213,35 @@ int getEncoderSpeed() {
   } else {
     return 0;
   } 
+}
+
+// Obstacle detection
+bool obstacle () {
+  Wire.begin();
+  Wire.beginTransmission(112);
+  Wire.write(byte(0x00));      
+  Wire.write(byte(0x51));     
+  Wire.endTransmission(); 
+  delay(30);            
+  Wire.beginTransmission(112); 
+  Wire.write(byte(0x02));     
+  Wire.endTransmission(); 
+  Wire.requestFrom(112, 2); 
+  int dist = 0;
+  if (2 <= Wire.available()) 
+    {
+      dist= Wire.read();  
+      dist = dist << 8;    
+      dist |= Wire.read(); 
+    }
+  if (dist < 30 && dist > 0) {
+    long rft = millis() + 1000;
+    long rct = millis();
+    while (rct <  rft) {
+       rct = millis();
+       return true;
+    }
+  } else{
+    return false;
+  }
 }
