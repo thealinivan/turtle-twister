@@ -4,7 +4,7 @@
 //GLOBAL DATA 
 
 //twist message variables;
-double linearX = -.2, angularZ = -1.8;
+double linearX = 4, angularZ = .8;
 
 //speed limits
 double x_val_limit = .5, z_val_limit = 5;
@@ -42,7 +42,7 @@ PID leftMotorPID(&leftMotorSetPoint, &leftMotorInput, &leftMotorOutput, Kp, Ki, 
 PID rightMotorPID(&rightMotorSetPoint, &rightMotorInput, &rightMotorOutput, Kp, Ki, Kd, DIRECT);
 
 //wobble
-unsigned long wobbleInterval = 2000, nextWobbleTime = wobbleInterval;
+unsigned long wobbleInterval = 500, nextWobbleTime = wobbleInterval;
 
 //SETUP
 void setup() {
@@ -69,8 +69,8 @@ void setup() {
 
 //LOOP
 void loop() {
-  moveTurtle(linearX, angularZ);                   
-  //wobbleTurtle(linearX, angularZ, wobbleInterval);
+  //moveTurtle(linearX, angularZ);                   
+  wobbleTurtle(linearX, angularZ, wobbleInterval);
 }
 
 //Wobble turtle left and right args| wi: positive ms 
