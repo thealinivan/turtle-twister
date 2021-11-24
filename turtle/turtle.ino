@@ -4,7 +4,10 @@
 //GLOBAL DATA 
 
 //twist message variables;
-double linearX = .1, angularZ = -.5;
+double linearX = -.2, angularZ = -1.8;
+
+//speed limits
+double x_val_limit = .5, z_val_limit = 5;
 
 //motors
 const int RIN1 = 5;  // R ACW
@@ -13,11 +16,11 @@ const int LIN1 = 6;  // L CW
 const int LIN2 = 9;  // L ACW
 
 //linear measurements
-const int ticksPerWheelRotation = 850;
-const double wheelCircumference = .207;
+const int ticksPerWR = 850;
+const double wheelCirc = .207;
 const double angRadius = .17;
 const float Pi = 3.14159;
-const double circleCircumference = angRadius*Pi;
+const double circleCirc = angRadius*Pi;
 const int maxEnC = 216;
 
 //encoders
@@ -27,9 +30,9 @@ const int LEN1 = 4; // L
 const int LEN2 = 2; // L
 volatile int prevC = 0, count;
 unsigned long period = 100, nextT = period;
-int linearSpeedEncoderCount = 0; //ticks/100ms  .1m
-int leftMotorAngularSpeedEncoderCount = 0; //ticks/100ms .1rad
-int rightMotorAngularSpeedEncoderCount = 0; 
+int ECLinear = 0; //ticks/100ms  .1m
+int ECAngL = 0; //ticks/100ms .1rad
+int ECAngR = 0; 
 
 //pid - variables related to pid
 double leftMotorSetPoint, leftMotorInput, leftMotorOutput;
@@ -37,6 +40,9 @@ double rightMotorSetPoint, rightMotorInput, rightMotorOutput;
 const int Kp=5, Ki=3, Kd=3;
 PID leftMotorPID(&leftMotorSetPoint, &leftMotorInput, &leftMotorOutput, Kp, Ki, Kd, DIRECT);
 PID rightMotorPID(&rightMotorSetPoint, &rightMotorInput, &rightMotorOutput, Kp, Ki, Kd, DIRECT);
+
+//wobble
+unsigned long wobbleInterval = 2000, nextWobbleTime = wobbleInterval;
 
 //SETUP
 void setup() {
@@ -48,8 +54,8 @@ void setup() {
   pinMode(LEN2, INPUT_PULLUP);
   pinMode(LEN2, INPUT_PULLUP);
   //pid - setup related to pid
-  rightMotorSetPoint = linearSpeedEncoderCount;
-  leftMotorSetPoint = linearSpeedEncoderCount;
+  rightMotorSetPoint = ECLinear;
+  leftMotorSetPoint = ECLinear;
   rightMotorPID.SetTunings(Kp, Ki, Kd);
   leftMotorPID.SetTunings(Kp, Ki, Kd);
   rightMotorPID.SetMode(AUTOMATIC);
@@ -63,39 +69,67 @@ void setup() {
 
 //LOOP
 void loop() {
+  moveTurtle(linearX, angularZ);                   
+  //wobbleTurtle(linearX, angularZ, wobbleInterval);
+}
+
+//Wobble turtle left and right args| wi: positive ms 
+void wobbleTurtle(double linear_x, double angular_z, int wobble_interval) {
+  linearX = linear_x;
+  angularZ = angular_z;
+  unsigned long currentTime = millis();
+  if (currentTime >= nextWobbleTime){
+    angularZ *= -1;
+    nextWobbleTime = currentTime + wobble_interval;
+    Serial.println(angularZ);
+  } 
   moveTurtle(linearX, angularZ);
 }
 
-// Move Turtle
+// Move Turtle args| x: -.5 to .5; y: -5 to 5
 void moveTurtle(double linear_x, double angular_z) {
-  setVelocityLimits(.5, 5);
-  setAngularDirection();
-  setLinearDirection(); 
+  setVelocityLimits(x_val_limit, z_val_limit);
+  setAngularDirection(linear_x, angular_z);
+  setLinearDirection(linear_x); 
 }
 
-//Speed Limits & Direction
+//Speed Limits
 void setVelocityLimits(double linear_limit, double angular_limit){
-   if (linearX > linear_limit) {linearX = linear_limit;}
-  if (linearX < -linear_limit) {linearX = -linear_limit;}
+  if (linearX > linear_limit) {linearX = linear_limit;}
+  else if (linearX < -linear_limit) {linearX = -linear_limit;}
   if (angularZ > angular_limit) {angularZ = angular_limit;}
-  if (angularZ < -angular_limit) {angularZ = -angular_limit;}
+  else if (angularZ < -angular_limit) {angularZ = -angular_limit;}
 }
-void setAngularDirection() {
-  if (angularZ > 0) {
-    leftMotorAngularSpeedEncoderCount = angularZ*(ticksPerWheelRotation*(circleCircumference/wheelCircumference)/(2*Pi))/10;
-  } else if (angularZ < 0) {
-    rightMotorAngularSpeedEncoderCount = -angularZ*(ticksPerWheelRotation*(circleCircumference/wheelCircumference)/(2*Pi))/10; 
+//Angular direction
+void setAngularDirection(double lx, double az) {
+  if (az > 0) {
+    if (lx >= 0){
+      ECAngL = az*(ticksPerWR*(circleCirc/wheelCirc)/(2*Pi))/10; // rad/100ms
+      ECAngR = 0;
+    } else {
+      ECAngL = 0;
+      ECAngR = az*(ticksPerWR*(circleCirc/wheelCirc)/(2*Pi))/10; // rad/100ms;
+    }
+  } else if (az < 0) {
+    if (lx >= 0) {
+      ECAngR = -az*(ticksPerWR*(circleCirc/wheelCirc)/(2*Pi))/10; // rad/100ms
+      ECAngL = 0;
+    } else {
+      ECAngR = 0;
+      ECAngL = -az*(ticksPerWR*(circleCirc/wheelCirc)/(2*Pi))/10; // rad/100ms
+    }
   } else {
-    leftMotorAngularSpeedEncoderCount = 0;
-    rightMotorAngularSpeedEncoderCount = 0;
+    ECAngL = 0;
+    ECAngR = 0;
   }
 }
-void setLinearDirection(){
-  if (linearX > 0) {
-    linearSpeedEncoderCount = linearX*(ticksPerWheelRotation/wheelCircumference)/10; // ticks/100ms
+//Linear direction
+void setLinearDirection(double lx){
+  if (lx > 0) {
+    ECLinear = lx*(ticksPerWR/wheelCirc)/10; // ticks/100ms
     moveForward();
-  } else if (linearX < 0) {
-      linearSpeedEncoderCount = -linearX*(ticksPerWheelRotation/wheelCircumference)/10; // ticks/100ms 
+  } else if (lx < 0) {
+      ECLinear = -lx*(ticksPerWR/wheelCirc)/10; // ticks/100ms 
       moveBackward(); 
   } else {
     stopTurtle();
@@ -123,7 +157,7 @@ void stopTurtle(){
  void leftMotor(char d){
 //  leftMotorInput = leftMotorSetPoint - getEncoderSpeed();
 //  leftMotorPID.Compute();
-  int ms = map(linearSpeedEncoderCount + leftMotorAngularSpeedEncoderCount/2 - rightMotorAngularSpeedEncoderCount/2, 0, maxEnC, 0, 255);
+  int ms = map(ECLinear + ECAngL/2 - ECAngR/2, 0, maxEnC, 0, 255);
   if (d=='L'){
     analogWrite(LIN1, 0);
     analogWrite(LIN2, ms);
@@ -138,7 +172,7 @@ void stopTurtle(){
 
 //Right Motor
 void rightMotor(char d){
-  int ms = map(linearSpeedEncoderCount - leftMotorAngularSpeedEncoderCount/2 + rightMotorAngularSpeedEncoderCount/2, 0, maxEnC, 0, 255);
+  int ms = map(ECLinear - ECAngL/2 + ECAngR/2, 0, maxEnC, 0, 255);
   if (d=='R'){
     analogWrite(RIN1, 0);
     analogWrite(RIN2, ms);
