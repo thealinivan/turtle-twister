@@ -11,27 +11,30 @@ const int LIN1 = 6;  // L CW
 const int LIN2 = 9;  // L ACW
 
 //encoders
-const int REN1 = 3; // R
-const int REN2 = 7; // R
-const int LEN1 = 4; // L
-const int LEN2 = 2; // L
-volatile int prevC = 0, count, countL;
-unsigned long period = 100, nextT = period;
+const int REN1 = 4; // R
+const int REN2 = 2; // R
+volatile int prevCR = 0, countR;
+unsigned long period = 100, nextTR = period;
+const int LEN1 = 3; // L
+const int LEN2 = 7; // L
+volatile int prevCL = 0, countL;
+unsigned long nextTL = period;
 int ECLinear = 0; //ticks/100ms  .1m
 int ECAngL = 0; //ticks/100ms .1rad
 int ECAngR = 0; //ticks/100ms .1rad
 
 //linear measurements
-const int ticksPerWR = 850;
+const int ticksPerWR = 852;
 const double wheelCirc = .207;
 const double angDiameter = .17;
 const float Pi = 3.14159;
 const double circleCirc = angDiameter*Pi;
+const double maxEncCount = 216;
 
 //pid - variables related to pid
 double leftMotorSetPoint, leftMotorInput, leftMotorOutput;
 double rightMotorSetPoint, rightMotorInput, rightMotorOutput;
-const int Kp=0.5, Ki=0.5, Kd=0.5;
+const int Kp=5, Ki=2, Kd=3;
 PID leftMotorPID(&leftMotorSetPoint, &leftMotorInput, &leftMotorOutput, Kp, Ki, Kd, DIRECT);
 PID rightMotorPID(&rightMotorSetPoint, &rightMotorInput, &rightMotorOutput, Kp, Ki, Kd, DIRECT);
 
@@ -48,13 +51,13 @@ void setup() {
   rightMotorPID.SetMode(AUTOMATIC);
   leftMotorPID.SetMode(AUTOMATIC);
   //interrups
-  attachInterrupt(0, interruptR, CHANGE);
-  attachInterrupt(1, interruptL, CHANGE); 
+  attachInterrupt(0, interruptL, CHANGE);
+  attachInterrupt(1, interruptR, CHANGE); 
 }
 
 //LOOP
 void loop() {
-  moveTurtle(.3, 0);                   
+  moveTurtle(.5, 0);                     
 }
 
 // Move Turtle
@@ -100,7 +103,7 @@ void setLinear(double lx){
 
 //Motors aggregation
 void moveForward(){
-  //leftMotor('L');
+  leftMotor('L');
   rightMotor('R');
 }
 void moveBackward(){
@@ -115,13 +118,13 @@ void stopTurtle(){
 //Left Motor
  void leftMotor(char d){
   leftMotorSetPoint = ECLinear; //  + ECAngL/2 - ECAngR/2
-  leftMotorInput = leftMotorSetPoint - getEncoderSpeed();
+  leftMotorInput = leftMotorSetPoint - getEncoderSpeedLeftMotor();
   leftMotorPID.Compute();
   if (d=='L'){
     analogWrite(LIN1, 0);
-    analogWrite(LIN2, &rightMotorOutput);
+    analogWrite(LIN2, &leftMotorOutput);
   } else if (d=='R') {
-    analogWrite(LIN1, &rightMotorOutput);
+    analogWrite(LIN1, &leftMotorOutput);
     analogWrite(LIN2, 0);
   } else {
     analogWrite(LIN1, 0);
@@ -132,7 +135,7 @@ void stopTurtle(){
 //Right Motor
 void rightMotor(char d){
   rightMotorSetPoint = ECLinear; //  - ECAngL/2 + ECAngR/2
-  rightMotorInput = rightMotorSetPoint - getEncoderSpeed();
+  rightMotorInput = rightMotorSetPoint - getEncoderSpeedRightMotor();
   rightMotorPID.Compute();
   if (d=='R'){
     analogWrite(RIN1, 0);
@@ -149,28 +152,41 @@ void rightMotor(char d){
 //Interrupts
 //  read pulse and update count
 void interruptR() { 
-      if (digitalRead(REN1)==digitalRead(REN2)) { --count; } 
-      else { ++count;}
+      countR++;
 }
 void interruptL() { 
-      if (digitalRead(REN1)==digitalRead(REN2)) { ++count; } 
-      else { --count;}
+      countL++;
 }
 
 //ENCODER COUNT
 // return ecoder speed ticks/100ms
-int getEncoderSpeed() {
+int getEncoderSpeedLeftMotor() {
   unsigned long currT = millis();
-  if (currT >= nextT){
+  if (currT >= nextTL){
       noInterrupts();
-      int currentCount = count;
+      int currentCount = countL;
       interrupts();
-      int encoderSpeed = currentCount - prevC; // ticks/100ms
-      prevC = currentCount;
-      nextT = currT + period;  
+      int encoderSpeed = currentCount - prevCL; // ticks/100ms
+      prevCL = currentCount;
+      nextTL = currT + period;  
+      return encoderSpeed;
+  } else {
+    return 0;
+  } 
+}
+
+int getEncoderSpeedRightMotor() {
+  unsigned long currT = millis();
+  if (currT >= nextTR){
+      noInterrupts();
+      int currentCount = countR;
+      interrupts();
+      int encoderSpeed = currentCount - prevCR; // ticks/100ms
+      prevCR = currentCount;
+      nextTR = currT + period;  
       Serial.print(rightMotorSetPoint);
       Serial.print(" ");
-      Serial.println(encoderSpeed);      
+      Serial.println(encoderSpeed);        
       return encoderSpeed;
   } else {
     return 0;
