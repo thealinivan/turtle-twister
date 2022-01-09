@@ -1,7 +1,7 @@
 //IMPORTS - ensure libraries are installed
 #include <PID_v1.h>
 #include <Wire.h>
-
+int i = 255;
 //GLOBAL DATA 
 
 //motors
@@ -25,11 +25,12 @@ int ECAngR = 0; //ticks/100ms .1rad
 
 //linear measurements
 const int ticksPerWR = 852;
-const double wheelCirc = .207;
-const double angDiameter = .17;
-const float Pi = 3.14159;
+const double wheelCirc = .2;
+const double angDiameter = .165;
+const float Pi = 3.14159265259;
 const double circleCirc = angDiameter*Pi;
-const double maxEncCount = 216;
+const double minENcCount = 0;
+const double maxEncCount = 213;
 
 //pid - variables related to pid
 double leftMotorSetPoint, leftMotorInput, leftMotorOutput;
@@ -57,7 +58,7 @@ void setup() {
 
 //LOOP
 void loop() {
-  moveTurtle(.5, 0);                     
+  moveTurtle(.5, 0);                    
 }
 
 // Move Turtle
@@ -89,30 +90,19 @@ void setAngular(double lx, double az) {
     ECAngR = 0;
   }
 }
-//Linear direction & velocity
+//Linear direction &  velocity
 void setLinear(double lx){
     ECLinear = lx*(ticksPerWR/wheelCirc)/10; // ticks/100ms
   if (ECLinear >= 0) {
-    moveForward();
+    leftMotor('L');
+    rightMotor('R');
   } else if (ECLinear < 0){
-    moveBackward();
+    leftMotor('R');
+    rightMotor('L');
   } else {
-    stopTurtle();
+     leftMotor('stop');
+     rightMotor('stop');
   }
-}
-
-//Motors aggregation
-void moveForward(){
-  leftMotor('L');
-  rightMotor('R');
-}
-void moveBackward(){
-  leftMotor('R');
-  rightMotor('L');
-}
-void stopTurtle(){
-  leftMotor('stop');
-  rightMotor('stop');
 }
 
 //Left Motor
@@ -122,9 +112,9 @@ void stopTurtle(){
   leftMotorPID.Compute();
   if (d=='L'){
     analogWrite(LIN1, 0);
-    analogWrite(LIN2, &leftMotorOutput);
+    analogWrite(LIN2, i);
   } else if (d=='R') {
-    analogWrite(LIN1, &leftMotorOutput);
+    analogWrite(LIN1, i);
     analogWrite(LIN2, 0);
   } else {
     analogWrite(LIN1, 0);
@@ -139,9 +129,9 @@ void rightMotor(char d){
   rightMotorPID.Compute();
   if (d=='R'){
     analogWrite(RIN1, 0);
-    analogWrite(RIN2, &rightMotorOutput);
+    analogWrite(RIN2, i);
   } else if (d=='L') {
-    analogWrite(RIN1, &rightMotorOutput);
+    analogWrite(RIN1, i);
     analogWrite(RIN2, 0);
   } else {
     analogWrite(RIN1, 0);
@@ -151,12 +141,8 @@ void rightMotor(char d){
 
 //Interrupts
 //  read pulse and update count
-void interruptR() { 
-      countR++;
-}
-void interruptL() { 
-      countL++;
-}
+void interruptR() { countR++; }
+void interruptL() { countL++; }
 
 //ENCODER COUNT
 // return ecoder speed ticks/100ms
@@ -168,7 +154,9 @@ int getEncoderSpeedLeftMotor() {
       interrupts();
       int encoderSpeed = currentCount - prevCL; // ticks/100ms
       prevCL = currentCount;
-      nextTL = currT + period;  
+      nextTL = currT + period; 
+      Serial.print(encoderSpeed);
+      Serial.print(" "); 
       return encoderSpeed;
   } else {
     return 0;
@@ -184,8 +172,8 @@ int getEncoderSpeedRightMotor() {
       int encoderSpeed = currentCount - prevCR; // ticks/100ms
       prevCR = currentCount;
       nextTR = currT + period;  
-      Serial.print(rightMotorSetPoint);
-      Serial.print(" ");
+      //Serial.print(rightMotorSetPoint);
+      //Serial.print(" ");
       Serial.println(encoderSpeed);        
       return encoderSpeed;
   } else {
