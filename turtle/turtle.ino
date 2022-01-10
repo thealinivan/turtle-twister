@@ -1,7 +1,6 @@
 //IMPORTS - ensure libraries are installed
 #include <PID_v1.h>
 #include <Wire.h>
-int i = 255;
 //GLOBAL DATA 
 
 //motors
@@ -35,7 +34,7 @@ const double maxEncCount = 213;
 //pid - variables related to pid
 double leftMotorSetPoint, leftMotorInput, leftMotorOutput;
 double rightMotorSetPoint, rightMotorInput, rightMotorOutput;
-const int Kp=5, Ki=2, Kd=3;
+const int Kp=.5, Ki=.5, Kd=.5;
 PID leftMotorPID(&leftMotorSetPoint, &leftMotorInput, &leftMotorOutput, Kp, Ki, Kd, DIRECT);
 PID rightMotorPID(&rightMotorSetPoint, &rightMotorInput, &rightMotorOutput, Kp, Ki, Kd, DIRECT);
 
@@ -47,8 +46,6 @@ void setup() {
   pinMode(LEN2, INPUT_PULLUP);
   pinMode(LEN2, INPUT_PULLUP);
   //pid
-  rightMotorPID.SetTunings(Kp, Ki, Kd);
-  leftMotorPID.SetTunings(Kp, Ki, Kd);
   rightMotorPID.SetMode(AUTOMATIC);
   leftMotorPID.SetMode(AUTOMATIC);
   //interrups
@@ -58,7 +55,7 @@ void setup() {
 
 //LOOP
 void loop() {
-  moveTurtle(.5, 0);                    
+  moveTurtle(.5, 0);                 
 }
 
 // Move Turtle
@@ -112,9 +109,9 @@ void setLinear(double lx){
   leftMotorPID.Compute();
   if (d=='L'){
     analogWrite(LIN1, 0);
-    analogWrite(LIN2, i);
+    analogWrite(LIN2, &leftMotorOutput);
   } else if (d=='R') {
-    analogWrite(LIN1, i);
+    analogWrite(LIN1, &leftMotorOutput);
     analogWrite(LIN2, 0);
   } else {
     analogWrite(LIN1, 0);
@@ -129,9 +126,9 @@ void rightMotor(char d){
   rightMotorPID.Compute();
   if (d=='R'){
     analogWrite(RIN1, 0);
-    analogWrite(RIN2, i);
+    analogWrite(RIN2, &rightMotorOutput);
   } else if (d=='L') {
-    analogWrite(RIN1, i);
+    analogWrite(RIN1, &rightMotorOutput);
     analogWrite(RIN2, 0);
   } else {
     analogWrite(RIN1, 0);
