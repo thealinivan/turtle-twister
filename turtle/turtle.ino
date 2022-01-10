@@ -4,20 +4,22 @@
 //GLOBAL DATA 
 
 //motors
-const int RIN1 = 5;  // R ACW
-const int RIN2 = 10; // R CW
 const int LIN1 = 6;  // L CW
 const int LIN2 = 9;  // L ACW
+const int RIN1 = 5;  // R ACW
+const int RIN2 = 10; // R CW
 
 //encoders
-const int REN1 = 4; // R
-const int REN2 = 2; // R
-volatile int prevCR = 0, countR;
-unsigned long period = 100, nextTR = period;
 const int LEN1 = 3; // L
 const int LEN2 = 7; // L
-volatile int prevCL = 0, countL;
-unsigned long nextTL = period;
+volatile int prevCL = 0, countL = 0;
+unsigned long period = 100, nextTL = period;
+
+const int REN1 = 4; // R
+const int REN2 = 2; // R
+volatile int prevCR = 0, countR = 0;
+unsigned long nextTR = period;
+
 int ECLinear = 0; //ticks/100ms  .1m
 int ECAngL = 0; //ticks/100ms .1rad
 int ECAngR = 0; //ticks/100ms .1rad
@@ -32,30 +34,28 @@ const double minENcCount = 0;
 const double maxEncCount = 213;
 
 //pid - variables related to pid
-double leftMotorSetPoint, leftMotorInput, leftMotorOutput;
-double rightMotorSetPoint, rightMotorInput, rightMotorOutput;
-const int Kp=.5, Ki=.5, Kd=.5;
-PID leftMotorPID(&leftMotorSetPoint, &leftMotorInput, &leftMotorOutput, Kp, Ki, Kd, DIRECT);
-PID rightMotorPID(&rightMotorSetPoint, &rightMotorInput, &rightMotorOutput, Kp, Ki, Kd, DIRECT);
+double Setpoint, Input, Output;
+PID leftPID(&Input, &Output, &Setpoint, .3, .6, .3, DIRECT);
+PID rightPID(&Input, &Output, &Setpoint, .3, .6, .3, DIRECT);
 
 //SETUP
-void setup() {
+void setup()
+{
   Serial.begin(9600);
   pinMode(REN1, INPUT_PULLUP);
   pinMode(REN2, INPUT_PULLUP);
   pinMode(LEN2, INPUT_PULLUP);
   pinMode(LEN2, INPUT_PULLUP);
-  //pid
-  rightMotorPID.SetMode(AUTOMATIC);
-  leftMotorPID.SetMode(AUTOMATIC);
-  //interrups
+  leftPID.SetMode(AUTOMATIC);
+  rightPID.SetMode(AUTOMATIC);
   attachInterrupt(0, interruptL, CHANGE);
   attachInterrupt(1, interruptR, CHANGE); 
 }
 
 //LOOP
-void loop() {
-  moveTurtle(.5, 0);                 
+void loop()
+{
+  moveTurtle(.3, 0); 
 }
 
 // Move Turtle
@@ -104,14 +104,17 @@ void setLinear(double lx){
 
 //Left Motor
  void leftMotor(char d){
-  leftMotorSetPoint = ECLinear; //  + ECAngL/2 - ECAngR/2
-  leftMotorInput = leftMotorSetPoint - getEncoderSpeedLeftMotor();
-  leftMotorPID.Compute();
+  Setpoint = ECLinear + ECAngL/2 - ECAngR/2;
+  Input = getEncoderSpeedLeftMotor();
+  leftPID.Compute();
+  Serial.print(Setpoint);
+  Serial.print(" ");
+  Serial.println(Output);
   if (d=='L'){
     analogWrite(LIN1, 0);
-    analogWrite(LIN2, &leftMotorOutput);
+    analogWrite(LIN2, Output);
   } else if (d=='R') {
-    analogWrite(LIN1, &leftMotorOutput);
+    analogWrite(LIN1, Output);
     analogWrite(LIN2, 0);
   } else {
     analogWrite(LIN1, 0);
@@ -121,20 +124,21 @@ void setLinear(double lx){
 
 //Right Motor
 void rightMotor(char d){
-  rightMotorSetPoint = ECLinear; //  - ECAngL/2 + ECAngR/2
-  rightMotorInput = rightMotorSetPoint - getEncoderSpeedRightMotor();
-  rightMotorPID.Compute();
+  Setpoint = ECLinear - ECAngL/2 + ECAngR/2;
+  Input = getEncoderSpeedRightMotor();
+  rightPID.Compute();
   if (d=='R'){
     analogWrite(RIN1, 0);
-    analogWrite(RIN2, &rightMotorOutput);
+    analogWrite(RIN2, Output);
   } else if (d=='L') {
-    analogWrite(RIN1, &rightMotorOutput);
+    analogWrite(RIN1, Output);
     analogWrite(RIN2, 0);
   } else {
     analogWrite(RIN1, 0);
     analogWrite(RIN2, 0);
   }
 }
+
 
 //Interrupts
 //  read pulse and update count
@@ -152,8 +156,6 @@ int getEncoderSpeedLeftMotor() {
       int encoderSpeed = currentCount - prevCL; // ticks/100ms
       prevCL = currentCount;
       nextTL = currT + period; 
-      Serial.print(encoderSpeed);
-      Serial.print(" "); 
       return encoderSpeed;
   } else {
     return 0;
@@ -168,10 +170,7 @@ int getEncoderSpeedRightMotor() {
       interrupts();
       int encoderSpeed = currentCount - prevCR; // ticks/100ms
       prevCR = currentCount;
-      nextTR = currT + period;  
-      //Serial.print(rightMotorSetPoint);
-      //Serial.print(" ");
-      Serial.println(encoderSpeed);        
+      nextTR = currT + period;        
       return encoderSpeed;
   } else {
     return 0;
