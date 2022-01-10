@@ -19,9 +19,9 @@ const int REN2 = 2; // R
 volatile int prevCR = 0, countR = 0;
 unsigned long nextTR = period;
 
-int ECLinear = 0; //ticks/100ms  .1m
-int ECAngL = 0; //ticks/100ms .1rad
-int ECAngR = 0; //ticks/100ms .1rad
+int ECLinear = 0; // target ticks/100ms
+int ECAngL = 0; // target ticks/100ms
+int ECAngR = 0; // target ticks/100ms
 
 // Linear measurements
 const int ticksPerWR = 852;
@@ -29,7 +29,7 @@ const double wheelCirc = .2;
 const double angDiameter = .165;
 const float Pi = 3.14159265259;
 const double circleCirc = angDiameter*Pi;
-const double minENcCount = 0;
+const double minEncCount = 0;
 const double maxEncCount = 213;
 
 // PID
@@ -66,21 +66,22 @@ void moveTurtle(double linear_x, double angular_z) {
 
 // Angular direction & velocity
 void setAngular(double lx, double az) {
+  int ECAng = az*(ticksPerWR*(circleCirc/wheelCirc)/(2*Pi))/10; 
   if (az > 0) {
     if (lx >= 0){
-      ECAngL = az*(ticksPerWR*(circleCirc/wheelCirc)/(2*Pi))/10; 
+      ECAngL = ECAng;
       ECAngR = 0;
     } else {
       ECAngL = 0;
-      ECAngR = az*(ticksPerWR*(circleCirc/wheelCirc)/(2*Pi))/10; 
+      ECAngR = ECAng;
     }
   } else if (az < 0) {
     if (lx >= 0) {
-      ECAngR = -az*(ticksPerWR*(circleCirc/wheelCirc)/(2*Pi))/10; 
       ECAngL = 0;
+      ECAngR = ECAng;
     } else {
+      ECAngL = ECAng;
       ECAngR = 0;
-      ECAngL = -az*(ticksPerWR*(circleCirc/wheelCirc)/(2*Pi))/10; 
     }
   } else {
     ECAngL = 0;
@@ -89,9 +90,7 @@ void setAngular(double lx, double az) {
 }
 // Linear direction &  velocity
 void setLinear(double lx){
-    ECLinear = lx*(ticksPerWR/wheelCirc)/10; // ticks/100ms
-    int leftEC = ECLinear + ECAngL/2 - ECAngR/2;
-    int rightEC = ECLinear - ECAngL/2 + ECAngR/2;
+  ECLinear = lx*(ticksPerWR/wheelCirc)/10; // ticks/100ms
   if (ECLinear >= 0) {
     leftMotor('L');
     rightMotor('R');
@@ -145,7 +144,7 @@ void rightMotor(char d){
   }
 }
 
-//Interrupts - read pulse and update count
+// Interrupts - read pulse and update count
 void interruptR() { countR++; }
 void interruptL() { countL++; }
 
@@ -161,9 +160,7 @@ int getEncoderSpeed(char motor) {
       prevCL = currentCount;
       nextTL = currT + period; 
       return encoderSpeed;
-  } else {
-    return 0;
-  } 
+    } else { return 0; } 
   } else if (motor=='R'){
      if (currT >= nextTR){
       noInterrupts();
@@ -173,10 +170,6 @@ int getEncoderSpeed(char motor) {
       prevCR = currentCount;
       nextTR = currT + period;      
       return encoderSpeed;
-  } else {
-    return 0;
-  } 
-  } else {
-    return 0;
-  }  
+    } else { return 0; } 
+  } else { return 0; }  
 }
