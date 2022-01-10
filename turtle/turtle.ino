@@ -33,9 +33,10 @@ const double minENcCount = 0;
 const double maxEncCount = 213;
 
 // PID
-double Setpoint, Input, Output;
-PID leftPID(&Input, &Output, &Setpoint, .3, .6, .3, DIRECT);
-PID rightPID(&Input, &Output, &Setpoint, .3, .6, .3, DIRECT);
+double Kp=.3, Ki=.6, Kd=.3;
+double SetpointL, InputL, OutputL, SetpointR, InputR, OutputR;
+PID leftPID(&InputL, &OutputL, &SetpointL, Kp, Ki, Kd, DIRECT);
+PID rightPID(&InputR, &OutputR, &SetpointR, Kp, Ki, Kd, DIRECT);
 
 // SETUP
 void setup()
@@ -54,7 +55,7 @@ void setup()
 // LOOP
 void loop()
 {
-  moveTurtle(.3, 0); 
+  moveTurtle(.5, 0); 
 }
 
 // Move Turtle
@@ -89,6 +90,8 @@ void setAngular(double lx, double az) {
 // Linear direction &  velocity
 void setLinear(double lx){
     ECLinear = lx*(ticksPerWR/wheelCirc)/10; // ticks/100ms
+    int leftEC = ECLinear + ECAngL/2 - ECAngR/2;
+    int rightEC = ECLinear - ECAngL/2 + ECAngR/2;
   if (ECLinear >= 0) {
     leftMotor('L');
     rightMotor('R');
@@ -103,17 +106,18 @@ void setLinear(double lx){
 
 // Left Motor
  void leftMotor(char d){
-  Setpoint = ECLinear + ECAngL/2 - ECAngR/2;
-  Input = getEncoderSpeed('L');
+  SetpointL = ECLinear + ECAngL/2 - ECAngR/2;
+  InputL = getEncoderSpeed('L');
   leftPID.Compute();
-  Serial.print(Setpoint);
+  Serial.print(SetpointL);
   Serial.print(" ");
-  Serial.println(Output);
+  Serial.print(OutputL);
+  Serial.print(" ");
   if (d=='L'){
     analogWrite(LIN1, 0);
-    analogWrite(LIN2, Output);
+    analogWrite(LIN2, OutputL);
   } else if (d=='R') {
-    analogWrite(LIN1, Output);
+    analogWrite(LIN1, OutputL);
     analogWrite(LIN2, 0);
   } else {
     analogWrite(LIN1, 0);
@@ -123,14 +127,17 @@ void setLinear(double lx){
 
 // Right Motor
 void rightMotor(char d){
-  Setpoint = ECLinear - ECAngL/2 + ECAngR/2;
-  Input = getEncoderSpeed('R');
+  SetpointR = ECLinear - ECAngL/2 + ECAngR/2;
+  InputR = getEncoderSpeed('R');
   rightPID.Compute();
+  Serial.print(SetpointR);
+  Serial.print(" ");
+  Serial.println(OutputR);
   if (d=='R'){
     analogWrite(RIN1, 0);
-    analogWrite(RIN2, Output);
+    analogWrite(RIN2, OutputR);
   } else if (d=='L') {
-    analogWrite(RIN1, Output);
+    analogWrite(RIN1, OutputR);
     analogWrite(RIN2, 0);
   } else {
     analogWrite(RIN1, 0);
@@ -153,8 +160,6 @@ int getEncoderSpeed(char motor) {
       int encoderSpeed = currentCount - prevCL; // ticks/100ms
       prevCL = currentCount;
       nextTL = currT + period; 
-      Serial.print(encoderSpeed);
-       Serial.print(" ");
       return encoderSpeed;
   } else {
     return 0;
@@ -166,8 +171,7 @@ int getEncoderSpeed(char motor) {
       interrupts();
       int encoderSpeed = currentCount - prevCR; // ticks/100ms
       prevCR = currentCount;
-      nextTR = currT + period; 
-      Serial.print(encoderSpeed);       
+      nextTR = currT + period;      
       return encoderSpeed;
   } else {
     return 0;
