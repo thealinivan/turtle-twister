@@ -1,15 +1,14 @@
-//IMPORTS - ensure libraries are installed
+// Imports - ensure libraries are installed
 #include <PID_v1.h>
 #include <Wire.h>
-//GLOBAL DATA 
 
-//motors
+// Motors
 const int LIN1 = 6;  // L CW
 const int LIN2 = 9;  // L ACW
 const int RIN1 = 5;  // R ACW
 const int RIN2 = 10; // R CW
 
-//encoders
+// Encoders
 const int LEN1 = 3; // L
 const int LEN2 = 7; // L
 volatile int prevCL = 0, countL = 0;
@@ -24,7 +23,7 @@ int ECLinear = 0; //ticks/100ms  .1m
 int ECAngL = 0; //ticks/100ms .1rad
 int ECAngR = 0; //ticks/100ms .1rad
 
-//linear measurements
+// Linear measurements
 const int ticksPerWR = 852;
 const double wheelCirc = .2;
 const double angDiameter = .165;
@@ -33,12 +32,12 @@ const double circleCirc = angDiameter*Pi;
 const double minENcCount = 0;
 const double maxEncCount = 213;
 
-//pid - variables related to pid
+// PID
 double Setpoint, Input, Output;
 PID leftPID(&Input, &Output, &Setpoint, .3, .6, .3, DIRECT);
 PID rightPID(&Input, &Output, &Setpoint, .3, .6, .3, DIRECT);
 
-//SETUP
+// SETUP
 void setup()
 {
   Serial.begin(9600);
@@ -52,7 +51,7 @@ void setup()
   attachInterrupt(1, interruptR, CHANGE); 
 }
 
-//LOOP
+// LOOP
 void loop()
 {
   moveTurtle(.3, 0); 
@@ -64,7 +63,7 @@ void moveTurtle(double linear_x, double angular_z) {
   setLinear(linear_x); 
 }
 
-//Angular direction & velocity
+// Angular direction & velocity
 void setAngular(double lx, double az) {
   if (az > 0) {
     if (lx >= 0){
@@ -87,7 +86,7 @@ void setAngular(double lx, double az) {
     ECAngR = 0;
   }
 }
-//Linear direction &  velocity
+// Linear direction &  velocity
 void setLinear(double lx){
     ECLinear = lx*(ticksPerWR/wheelCirc)/10; // ticks/100ms
   if (ECLinear >= 0) {
@@ -102,10 +101,10 @@ void setLinear(double lx){
   }
 }
 
-//Left Motor
+// Left Motor
  void leftMotor(char d){
   Setpoint = ECLinear + ECAngL/2 - ECAngR/2;
-  Input = getEncoderSpeedLeftMotor();
+  Input = getEncoderSpeed('L');
   leftPID.Compute();
   Serial.print(Setpoint);
   Serial.print(" ");
@@ -122,10 +121,10 @@ void setLinear(double lx){
   }
 }
 
-//Right Motor
+// Right Motor
 void rightMotor(char d){
   Setpoint = ECLinear - ECAngL/2 + ECAngR/2;
-  Input = getEncoderSpeedRightMotor();
+  Input = getEncoderSpeed('R');
   rightPID.Compute();
   if (d=='R'){
     analogWrite(RIN1, 0);
@@ -139,40 +138,41 @@ void rightMotor(char d){
   }
 }
 
-
-//Interrupts
-//  read pulse and update count
+//Interrupts - read pulse and update count
 void interruptR() { countR++; }
 void interruptL() { countL++; }
 
-//ENCODER COUNT
-// return ecoder speed ticks/100ms
-int getEncoderSpeedLeftMotor() {
+// Ecoder speed - return ticks/100ms
+int getEncoderSpeed(char motor) {
   unsigned long currT = millis();
-  if (currT >= nextTL){
+  if (motor=='L') {
+    if (currT >= nextTL){
       noInterrupts();
       int currentCount = countL;
       interrupts();
       int encoderSpeed = currentCount - prevCL; // ticks/100ms
       prevCL = currentCount;
       nextTL = currT + period; 
+      Serial.print(encoderSpeed);
+       Serial.print(" ");
       return encoderSpeed;
   } else {
     return 0;
   } 
-}
-
-int getEncoderSpeedRightMotor() {
-  unsigned long currT = millis();
-  if (currT >= nextTR){
+  } else if (motor=='R'){
+     if (currT >= nextTR){
       noInterrupts();
       int currentCount = countR;
       interrupts();
       int encoderSpeed = currentCount - prevCR; // ticks/100ms
       prevCR = currentCount;
-      nextTR = currT + period;        
+      nextTR = currT + period; 
+      Serial.print(encoderSpeed);       
       return encoderSpeed;
   } else {
     return 0;
   } 
+  } else {
+    return 0;
+  }  
 }
