@@ -19,6 +19,8 @@ const int REN2 = 2; // R
 volatile int prevCR = 0, countR = 0;
 unsigned long nextTR = period;
 
+int currEncL = 0, currEncR = 0;
+
 int ECLinear = 0; // target ticks/100ms
 int ECAngL = 0; // target ticks/100ms
 int ECAngR = 0; // target ticks/100ms
@@ -29,8 +31,9 @@ const double wheelCirc = .2;
 const double angDiameter = .165;
 const float Pi = 3.14159265259;
 const double circleCirc = angDiameter*Pi;
-const double minEncCount = 0;
-const double maxEncCount = 213;
+const double minEncCount = 0;   // ticks/100 milliseconds
+const double maxEncCount = 213; // ticks/100 milliseconds
+
 
 // PID
 double Kp=.3, Ki=.6, Kd=.3;
@@ -56,6 +59,8 @@ void setup()
 void loop()
 {
   moveTurtle(.5, 0); 
+  // linear values between -0.5 and +0.5
+  // angular values between -5 and +5
 }
 
 // Move Turtle
@@ -88,9 +93,10 @@ void setAngular(double lx, double az) {
     ECAngR = 0;
   }
 }
+
 // Linear direction &  velocity
 void setLinear(double lx){
-  ECLinear = lx*(ticksPerWR/wheelCirc)/10; // ticks/100ms
+  ECLinear = lx*(ticksPerWR/wheelCirc)/10; // ticks/100 milliseconds
   if (ECLinear >= 0) {
     leftMotor('L');
     rightMotor('R');
@@ -106,12 +112,12 @@ void setLinear(double lx){
 // Left Motor
  void leftMotor(char d){
   SetpointL = ECLinear + ECAngL/2 - ECAngR/2;
-  InputL = getEncoderSpeed('L');
+  InputL = getEncoderSpeed('L'); // 
   leftPID.Compute();
-  Serial.print(SetpointL);
+  Serial.print(SetpointL); // the target speed (enconder counts / 100 milisenconds)
   Serial.print(" ");
-  Serial.print(OutputL);
-  Serial.print(" ");
+  Serial.println(InputL); // current speed (enconder counts / 100 milisenconds)
+  //Serial.print(" ");
   if (d=='L'){
     analogWrite(LIN1, 0);
     analogWrite(LIN2, OutputL);
@@ -129,9 +135,9 @@ void rightMotor(char d){
   SetpointR = ECLinear - ECAngL/2 + ECAngR/2;
   InputR = getEncoderSpeed('R');
   rightPID.Compute();
-  Serial.print(SetpointR);
-  Serial.print(" ");
-  Serial.println(OutputR);
+  //Serial.print(SetpointR);
+  //Serial.print(" ");
+  //Serial.println(OutputR);
   if (d=='R'){
     analogWrite(RIN1, 0);
     analogWrite(RIN2, OutputR);
@@ -156,20 +162,20 @@ int getEncoderSpeed(char motor) {
       noInterrupts();
       int currentCount = countL;
       interrupts();
-      int encoderSpeed = currentCount - prevCL; // ticks/100ms
+      currEncL = currentCount - prevCL; // ticks/100ms
       prevCL = currentCount;
       nextTL = currT + period; 
-      return encoderSpeed;
-    } else { return 0; } 
+      return currEncL;
+    } else { return currEncL; } 
   } else if (motor=='R'){
      if (currT >= nextTR){
       noInterrupts();
       int currentCount = countR;
       interrupts();
-      int encoderSpeed = currentCount - prevCR; // ticks/100ms
+      currEncR = currentCount - prevCR; // ticks/100ms
       prevCR = currentCount;
       nextTR = currT + period;      
-      return encoderSpeed;
-    } else { return 0; } 
+      return currEncR;
+     } else { currEncR; } 
   } else { return 0; }  
 }
