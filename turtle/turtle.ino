@@ -28,20 +28,10 @@ const int ticksPerWR = 852;
 const double wheelCirc = .2;
 const double angDiameter = .165;
 const float Pi = 3.14159265259;
-const double circleCirc = angDiameter*Pi;
+const double circleCirc = 2*angDiameter*Pi;
 const double minENcCount = 0;
 const double minEncCount = 0;
 const double maxEncCount = 213;
-
-// Routine
-volatile int i = 2000;
-volatile int r1 = millis() + i;
-volatile int r2 = millis() + i*2;
-volatile int r3 = millis() + i*3;
-volatile int r4 = millis() + i*4;
-volatile int r5 = millis() + i*5;
-volatile int r6 = millis() + i*6;
-volatile int r7 = millis() + i*7;
 
 // PID
 double Kp=.2, Ki=1, Kd=.1;
@@ -66,9 +56,9 @@ void setup()
 // LOOP
 void loop()
 {
-  moveTurtle(.3, 0);
+  moveTurtle(0, 4);
 }
-         
+  
 // Move Turtle
 void moveTurtle(double linear_x, double angular_z) {
   setAngular(linear_x, angular_z);
@@ -99,6 +89,7 @@ void setAngular(double lx, double az) {
     ECAngR = 0;
   }
 }
+
 // Linear direction &  velocity
 void setLinear(double lx){
     ECLinear = lx*(ticksPerWR/wheelCirc)/10; // ticks/100ms
