@@ -1,6 +1,5 @@
 // Imports - ensure libraries are installed
 #include <PID_v1.h>
-#include <Wire.h>
 
 // Motors
 const int LIN1 = 6;  // L CW
@@ -28,7 +27,7 @@ const int ticksPerWR = 852;
 const double wheelCirc = .2;
 const double angDiameter = .165;
 const float Pi = 3.14159265259;
-const double circleCirc = 2*angDiameter*Pi;
+const double circleCirc = angDiameter*Pi;
 const double minENcCount = 0;
 const double minEncCount = 0;
 const double maxEncCount = 213;
@@ -56,7 +55,7 @@ void setup()
 // LOOP
 void loop()
 {
-  moveTurtle(0, 4);
+  moveTurtle(.2, 2);
 }
   
 // Move Turtle
@@ -148,7 +147,6 @@ void rightMotor(char d){
 }
 
 //Interrupts - read pulse and update count
-// Interrupts - read pulse and update count
 void interruptR() { countR++; }
 void interruptL() { countL++; }
 
