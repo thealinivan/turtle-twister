@@ -28,7 +28,6 @@ const double wheelCircumference = .2;
 const double distanceBetweenTheWheels = .165;
 const float Pi = 3.14159265259;
 const double circleCircumference = distanceBetweenTheWheels*Pi;
-const double minENcCount = 0;
 const double minEncCount = 0;
 const double maxEncCount = 213;
 
