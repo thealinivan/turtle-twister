@@ -12,11 +12,13 @@ const int LEN1 = 3; // L
 const int LEN2 = 7; // L
 volatile int prevCL = 0, countL = 0;
 unsigned long period = 100, nextTL = period;
+int encoderSpeedL;
 
 const int REN1 = 4; // R
 const int REN2 = 2; // R
 volatile int prevCR = 0, countR = 0;
 unsigned long nextTR = period;
+int encoderSpeedR;
 
 int ECLinear = 0; // target ticks/100ms
 int ECAngL = 0; // target ticks/100ms
@@ -32,7 +34,7 @@ const double minEncCount = 0;
 const double maxEncCount = 213;
 
 // PID
-double Kp=.2, Ki=1, Kd=.1;
+double Kp=.1, Ki=1, Kd=.1;
 double SetpointL, InputL, OutputL, SetpointR, InputR, OutputR;
 PID leftPID(&InputL, &OutputL, &SetpointL, Kp, Ki, Kd, DIRECT);
 PID rightPID(&InputR, &OutputR, &SetpointR, Kp, Ki, Kd, DIRECT);
@@ -54,7 +56,7 @@ void setup()
 // LOOP
 void loop()
 {
-  moveTurtle(.2, 2);
+  moveTurtle(.4, 0);
 }
   
 // Move Turtle
@@ -111,7 +113,7 @@ void setLinear(double lx){
   leftPID.Compute();
   Serial.print(SetpointL);
   Serial.print(" ");
-  Serial.print(OutputL);
+  Serial.print(InputL);
   Serial.print(" ");
   if (d=='L'){
     analogWrite(LIN1, 0);
@@ -132,7 +134,7 @@ void rightMotor(char d){
   rightPID.Compute();
   Serial.print(SetpointR);
   Serial.print(" ");
-  Serial.println(OutputR);
+  Serial.println(InputR);
   if (d=='R'){
     analogWrite(RIN1, 0);
     analogWrite(RIN2, OutputR);
@@ -157,24 +159,24 @@ int getEncoderSpeed(char motor) {
       noInterrupts();
       int currentCount = countL;
       interrupts();
-      int encoderSpeed = currentCount - prevCL; // ticks/100ms
+      encoderSpeedL = currentCount - prevCL; // ticks/100ms
       prevCL = currentCount;
       nextTL = currT + period; 
-      return encoderSpeed;
+      return encoderSpeedL;
     } else {
-      return 0;
-    }  
+      return encoderSpeedL;   
+    }
   } else if (motor=='R'){
      if (currT >= nextTR){
       noInterrupts();
       int currentCount = countR;
       interrupts();
-      int encoderSpeed = currentCount - prevCR; // ticks/100ms
+      encoderSpeedR = currentCount - prevCR; // ticks/100ms
       prevCR = currentCount;
       nextTR = currT + period;      
-      return encoderSpeed;
+      return encoderSpeedR;
     } else {
-      return 0;
-    } 
+      return encoderSpeedR;
+    }
   }
 }
