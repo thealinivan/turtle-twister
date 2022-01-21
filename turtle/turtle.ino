@@ -24,10 +24,10 @@ int ECAngR = 0; // target ticks/100ms
 
 // Linear measurements
 const int ticksPerWR = 852;
-const double wheelCirc = .2;
-const double angDiameter = .165;
+const double wheelCircumference = .2;
+const double distanceBetweenTheWheels = .165;
 const float Pi = 3.14159265259;
-const double circleCirc = angDiameter*Pi;
+const double circleCircumference = distanceBetweenTheWheels*Pi;
 const double minENcCount = 0;
 const double minEncCount = 0;
 const double maxEncCount = 213;
@@ -66,7 +66,7 @@ void moveTurtle(double linear_x, double angular_z) {
 
 // Angular direction & velocity
 void setAngular(double lx, double az) {
-  int ECAng = az*(ticksPerWR*(circleCirc/wheelCirc)/(2*Pi))/10; 
+  int ECAng = az*(ticksPerWR*(circleCircumference/wheelCircumference)/(2*Pi))/10; 
   if (az > 0) {
     if (lx >= 0){
       ECAngL = ECAng;
@@ -91,7 +91,7 @@ void setAngular(double lx, double az) {
 
 // Linear direction &  velocity
 void setLinear(double lx){
-    ECLinear = lx*(ticksPerWR/wheelCirc)/10; // ticks/100ms
+    ECLinear = lx*(ticksPerWR/wheelCircumference)/10; // ticks/100ms
   if (ECLinear >= 0) {
     leftMotor('L');
     rightMotor('R');
